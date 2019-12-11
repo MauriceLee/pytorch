@@ -1,0 +1,103 @@
+對比錯誤的預測與正確的答案所得到誤差，去做反向傳遞，然後去慢慢的改動(更新)神經元，讓他更接近答案
+
+每一次的正向傳遞都會激活特定的神經元，當預測結果不是想要的答案時，就會去反向傳遞誤差，使得下次激活不同的神經元
+
+optimiztion => gradient descent => 梯度為0，斜率為0的點，即為最佳解，但有可能是全局最優，也可能是局部最優
+
+神經網路中的黑盒子，亦或是這麼多層的神經元，每一層其實都是將輸入轉換成某種計算機才讀得懂特徵
+
+NumPy是處理矩陣或是多維陣列的數據，而pytorch是tensor(張量的形式，1,2...維)的形式，所以自稱為神經網路中的numpy
+
+numpy data 轉成 torch data 用 torch.from_numpy(np_data)
+torch data 轉成 numpy data 用 torch_data.numpy()
+一般矩陣轉成tensor且浮點數的形式 用 torch.FloatTensor
+
+numpy可以接收一般的矩陣型式，torch只能接受tensor的型式
+絕對值(abs) => np.abs(data), torch.abs(tensor)
+sin => np.sin(data), torch.sin(tensor)
+平均值(mean) => np.mean(data), torch.mean(tensor)
+相乘 => np.matmul(data, data) = data.dot(data) if data = np.array(data), torch.mm(tensor, tensor) != tensor.dot(sensor)
+
+torch是用tensor來計算的，而神經網路中的參數都是用variable的型式，也就是把tensor的數據信息放到variable的變量裡
+variable = Variable(tensor, requires_grad=True) 一般是false 代表誤差反向傳遞時會不會計算節點的梯度
+
+variable.data = tensor
+variable.data.numpy() = tensor.numpy() = numpy
+
+激勵(激活)函數(activation function) => 非線性函數
+=> relu, sigmoid, tanh, softplus.. (但必須注意要為可微分的，因為只有可微分的可以做反向傳遞)
+只有少層(2,3)的神經層(隱藏層)，可以隨便使用激勵函數，如果是多層就要小心使用，可能造成梯度爆炸或是梯度消失
+也要注意輸出不能使用激活函數，因為這樣有可能會造成輸出的結果被截斷了
+
+import torch.nn.functional as F => nn神經網路模塊, functional(包含非線性的function)
+F.relu(input_data), F.sigmoid(input_data)....
+
+x = torch.linspace(-5, 5, 200) => 數據點的型式
+
+畫圖的時候要將tensor轉成numpy才可以畫圖
+
+x = torch.unsqueeze(torch.linspace(-1, 1, 100), dim=1) => unsqueeze 把一維的數據變成二維，因為torch只會處理二維的數據
+y = x.pow(2) + 0.2*torch.rand(x.size()) => 2次方加上一點噪點的影響
+
+定義神經網路起手式
+class Net(torch.nn.Module):
+	def __init__(self):
+		super(Net, self).__init__()
+		定義層訊息
+	def forward(self):
+		怎麼傳
+
+優化神經網路
+optimizer = torch.optim.optimizer(NNparameters(), lr=?)
+
+定義 loss function
+loss_func = torch.nn.LossFunction()
+
+開始訓練
+1. 每一步的預測值 => prediction = net(x)
+2. 計算誤差 => loss = loss_func(prediction, y) => (預測值, 正確值)
+3. 開始優化
+	optimizer.zero_grad() => 先把所有參數的梯度歸零，因為每次計算Loss與更新時，梯度都會保留在optimizer裡
+	loss.backward() => 開始反向傳遞，給每一個神經元節點附上計算出loss的梯度
+	optimizer.step() => 根據每一個神經元所計算出的梯度去用optimizer優化這些節點
+
+幾個類型(特徵) 就要有幾個輸出 ex. 對應一個y(1), 分兩類(2), 判斷0~9(10)
+
+MSELoss => 回歸
+CrossEntropyLoss => 分類, 標籤
+
+快速搭建神經網路(激活函數就要用大寫，為class)
+net2 = torch.nn.Sequential(
+    torch.nn.Linear(2, 10),
+    torch.nn.ReLU(),
+    torch.nn.Linear(10, 2)
+)
+
+利用data loader來進行批次訓練
+import torch.utils.data as Data
+
+定義BATCH_SIZE
+BATCH_SIZE = 5
+定義數據
+定義Dataset
+torch_dataset = Data.TensorDataset(x, y)
+定義loader
+loader = Data.DataLoader(
+    dataset=torch_dataset,      # torch TensorDataset format
+    batch_size=BATCH_SIZE,      # mini batch size
+    shuffle=True,               # 每次提取都打亂
+    num_workers=2,		# 更有效率提取Batch
+)
+
+show_bactch
+def show_batch():
+    for epoch in range(3):   # train entire dataset 3 times
+        # for each training step, enumerate=>每一次提取的時候都給他一個索引(step)
+        for step, (batch_x, batch_y) in enumerate(loader):
+            # train your data...
+            print('Epoch: ', epoch, '| Step: ', step, '| batch x: ',
+                  batch_x.numpy(), '| batch y: ', batch_y.numpy())
+
+
+if __name__ == '__main__':
+    show_batch()
